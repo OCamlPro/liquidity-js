@@ -1,0 +1,20 @@
+opam-version: "1.2"
+maintainer: "liquidity@ocamlpro.com"
+authors: [
+  "Alain Mebsout <alain.mebsout@ocamlpro.com>"
+]
+homepage: "http://liquidity-lang.org"
+dev-repo: "https://github.com/OCamlPro/liquidity-js.git"
+bug-reports: "https://github.com/OCamlPro/liquidity-js/issues"
+build: [
+  [ make ]
+]
+install: []
+remove: []
+depends: [
+  "digestif" { = "0.7.1" }
+  "js_of_ocaml"
+  "js_of_ocaml-lwt"
+  "js_of_ocaml-camlp4"
+]
+available: [ocaml-version >= "4.06.1"]

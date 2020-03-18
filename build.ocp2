@@ -1,0 +1,5 @@
+Sys = module("ocp-build:Sys", "1.0");
+
+with_version = Sys.file_exists("RELEASE");
+with_dune_network = true;
+for_javascript = true;

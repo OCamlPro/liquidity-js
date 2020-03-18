@@ -1,0 +1,36 @@
+<html>
+  <head>
+    <script type="text/javascript">
+      sodium = "gros sel"
+    </script>
+    <script src="../dist/liquidity.browser.js" type="text/javascript" async></script>
+    <script type="text/javascript">
+      window.onload = async () => {
+          await liquidity.ready;
+
+          // Setting options
+          liquidity.options.private_key.set("edsk3impUREDjtAvDvz8MWQsY7JQyFHhBfVoU6CztBUCLw3ocuqqJ7");
+          liquidity.options.node.set("http://testnet-node.dunscan.io");
+
+          // Compile
+          var my_contract = 
+              `type storage = int
+               let%init storage x = 2 * (x:int) + 1
+               let%entry default () x = [], x + 1`;
+          console.log(liquidity.compiler.compile(my_contract));
+
+          // Deploy contract
+          liquidity.client.deploy({
+              code: my_contract,
+              arguments: ["1"]
+          }).then(console.log).catch(console.error);
+
+      }
+    </script>
+
+  </head>
+
+  <body>
+  </body>
+
+</html>
