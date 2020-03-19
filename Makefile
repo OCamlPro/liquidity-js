@@ -1,4 +1,3 @@
-set-mode:
 ifeq ($(MODE),)
 ifeq ($(wildcard RELEASE),)
     MODE := development
