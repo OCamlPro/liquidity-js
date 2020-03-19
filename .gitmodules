@@ -1,9 +1,9 @@
 [submodule "libs/liquidity"]
 	path = libs/liquidity
 	url = git@github.com:OCamlPro/liquidity.git
-[submodule "libs/ocp-libsoduim-js"]
-	path = libs/ocp-libsoduim-js
-	url = git@github.com:OCamlPro/ocp-libsodium-js.git
 [submodule "libs/ocplib-ezjsonm-js"]
 	path = libs/ocplib-ezjsonm-js
 	url = git@github.com:OCamlPro/ocplib-ezjsonm-js.git
+[submodule "libs/ocp-libsodium-js"]
+	path = libs/ocp-libsodium-js
+	url = git@github.com:OCamlPro/ocp-libsodium-js.git

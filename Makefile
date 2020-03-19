@@ -39,10 +39,12 @@ publish-npm: release-file dist/liquidity.node.js
 	@rm -f package.json
 	@mv package.json.bak package.json
 
-submodules: libs/liquidity libs/ocp-libsoduim-js libs/ocplib-ezjsonm-js
-
-libs/liquidity libs/ocp-libsoduim-js libs/ocplib-ezjsonm-js: .gitmodules
+submodules-update: .gitmodules
 	git submodule update --init --recursive
+
+libs/liquidity libs/ocp-libsoduim-js libs/ocplib-ezjsonm-js: submodules-update
+
+submodules: libs/liquidity libs/ocp-libsoduim-js libs/ocplib-ezjsonm-js
 
 _obuild: Makefile _opam
 	ocp-build init
