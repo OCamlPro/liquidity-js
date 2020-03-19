@@ -1,3 +1,4 @@
+set-mode:
 ifeq ($(MODE),)
 ifeq ($(wildcard RELEASE),)
     MODE := development
@@ -19,7 +20,7 @@ dist/liquidity.browser.js: node_modules _obuild/liquidity-js/liquidity-js.js wra
 	@echo --- Building browser library ------------------------
 	@npx webpack --mode $(MODE) --target web wrapper/liquidity-js-wrapper.js -o $@
 
-publish-npm: # release dist/liquidity.node.js
+publish-npm: release-file dist/liquidity.node.js
 	@rm -f RELEASE
 	@cp -f package.json package.json.bak
 	sed -i s/0.0.0-dev/$$( \
@@ -34,7 +35,6 @@ publish-npm: # release dist/liquidity.node.js
 	[ -z $$R ] || R=-$$R; \
 	echo "$$M.$$N.$$P$$R" \
 	)/ package.json
-#	cat package.json
 	npm publish --dry-run
 	@rm -f package.json
 	@mv package.json.bak package.json
@@ -58,5 +58,9 @@ clean: _obuild
 distclean: clean
 	rm -rf _obuild
 
-release:
+release-file:
 	touch RELEASE
+	$(eval MODE := production)
+
+release: release-file all
+	@rm -f RELEASE
