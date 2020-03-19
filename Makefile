@@ -9,7 +9,7 @@ endif
 
 all: dist/liquidity.node.js dist/liquidity.browser.js
 
-_obuild/liquidity-js/liquidity-js.js: _obuild
+_obuild/liquidity-js/liquidity-js.js: _obuild submodules
 	@ocp-build build liquidity-js
 
 dist/liquidity.node.js: node_modules _obuild/liquidity-js/liquidity-js.js wrapper/liquidity-js-wrapper.js
@@ -39,6 +39,10 @@ publish-npm: release-file dist/liquidity.node.js
 	@rm -f package.json
 	@mv package.json.bak package.json
 
+submodules: libs/liquidity libs/ocp-libsoduim-js libs/ocplib-ezjsonm-js
+
+libs/liquidity libs/ocp-libsoduim-js libs/ocplib-ezjsonm-js: .gitmodules
+	git submodule update --init --recursive
 
 _obuild: Makefile _opam
 	ocp-build init
