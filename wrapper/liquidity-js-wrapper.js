@@ -21,7 +21,7 @@ exports.is_ready = false;
 exports.ready = new Promise(resolve => {
     const _sodium = require("libsodium-wrappers-sumo");
     _sodium.ready.then(() => {
-        var saved = save_properties(global, ['sodium', 'blakejs', 'XMLHttpRequest']);
+        var saved = save_properties(global, ['sodium', 'blakejs']);
         global.sodium = _sodium;
         global.blakejs = require("blakejs");
         if (typeof module !== 'undefined' && module.exports) {
@@ -31,6 +31,6 @@ exports.ready = new Promise(resolve => {
         Object.assign(exports, liquidity);
         exports.is_ready = true;
         resolve();
-        restore_properties(global, ['sodium', 'blakejs', 'XMLHttpRequest'], saved);
+        restore_properties(global, ['sodium', 'blakejs'], saved);
     })
 })
