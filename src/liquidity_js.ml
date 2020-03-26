@@ -204,41 +204,6 @@ let () =
 let () =
   Js.export "options" options_obj
 
-let () =
-  Js.export "compiler" @@ jsobject
-method compile js_str =
-  Js.to_string js_str
-  |> compile_to_string
-  |> Js.string
-method decompile js_str =
-  Js.to_string js_str
-  |> decompile_string
-  |> Js.string
-end
-
-let () =
-  Js.export "obj_compiler" @@ jsobject
-method compile js_str =
-  Js.to_string js_str
-  |> compile_to_json
-  |> Ezjsonm.value_to_js
-method decompile obj =
-  Ezjsonm.value_from_js obj
-  |> decompile_json
-  |> Js.string
-end
-
-module Client = LiquidityToMichelsonClient.String.Async
-module ClientJson = LiquidityToMichelsonClient.SJson.Async
-open LiquidityToMichelson
-open Lwt.Infix
-
-(* Helper functions *)
-open Js_of_ocaml
-
-let new_promise f =
-  Js.Unsafe.new_obj Js.Unsafe.global##_Promise [|Js.Unsafe.inject f|]
-
 let mk_js_error fmt =
   Format.kasprintf
     (fun str -> jsnew Js.error_constr (Js.string str))
@@ -265,6 +230,49 @@ let report_error = function
     let backtrace = Printexc.get_backtrace () in
     mk_js_error "Liquidity Error: %s\nBacktrace:\n%s"
       (Printexc.to_string exn) backtrace
+
+let () =
+  Js.export "compiler" @@ jsobject
+method compile js_str =
+  try
+    Js.to_string js_str
+    |> compile_to_string
+    |> Js.string
+  with exn -> Js.raise_js_error (report_error exn)
+method decompile js_str =
+  try
+    Js.to_string js_str
+    |> decompile_string
+    |> Js.string
+  with exn -> Js.raise_js_error (report_error exn)
+end
+
+let () =
+  Js.export "obj_compiler" @@ jsobject
+method compile js_str =
+  try
+    Js.to_string js_str
+    |> compile_to_json
+    |> Ezjsonm.value_to_js
+  with exn -> Js.raise_js_error (report_error exn)
+method decompile obj =
+  try
+    Ezjsonm.value_from_js obj
+    |> decompile_json
+    |> Js.string
+  with exn -> Js.raise_js_error (report_error exn)
+end
+
+module Client = LiquidityToMichelsonClient.String.Async
+module ClientJson = LiquidityToMichelsonClient.SJson.Async
+open LiquidityToMichelson
+open Lwt.Infix
+
+(* Helper functions *)
+open Js_of_ocaml
+
+let new_promise f =
+  Js.Unsafe.new_obj Js.Unsafe.global##_Promise [|Js.Unsafe.inject f|]
 
 let lwt_to_promise f =
   new_promise @@ fun resolve reject ->
