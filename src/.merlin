@@ -1,0 +1,9 @@
+S ./*
+S ./**
+S ../libs/**
+B ../_obuild/**
+PKG lwt
+PKG ocplib-json-typed
+PKG js_of_ocaml
+PKG js_of_ocaml-lwt
+EXT js

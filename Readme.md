@@ -35,8 +35,8 @@ const liquidity = require("liquidity-js");
     await liquidity.ready;
 
     // Setting options
-    liquidity.options.private_key.set("edsk3impUREDjtAvDvz8MWQsY7JQyFHhBfVoU6CztBUCLw3ocuqqJ7");
-    liquidity.options.node.set("http://testnet-node.dunscan.io");
+    liquidity.options.private_key = "edsk3impUREDjtAvDvz8MWQsY7JQyFHhBfVoU6CztBUCLw3ocuqqJ7";
+    liquidity.options.node = "http://testnet-node.dunscan.io";
     
     // Compile
     var my_contract = 
@@ -65,8 +65,8 @@ const liquidity = require("liquidity-js");
     await liquidity.ready;
 
     // Setting options
-    liquidity.options.private_key.set("edsk3impUREDjtAvDvz8MWQsY7JQyFHhBfVoU6CztBUCLw3ocuqqJ7");
-    liquidity.options.node.set("http://testnet-node.dunscan.io");
+    liquidity.options.private_key = "edsk3impUREDjtAvDvz8MWQsY7JQyFHhBfVoU6CztBUCLw3ocuqqJ7";
+    liquidity.options.node = "http://testnet-node.dunscan.io";
 
     // Compile
     var my_contract = 

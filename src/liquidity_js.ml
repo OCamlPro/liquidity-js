@@ -87,6 +87,7 @@ let () =
   LiquidClientRequest.get := xhr_get (fun () -> !LiquidOptions.node)
 
 let mk_option (from_js : 'b -> 'a) (to_js : 'a -> 'b) (r : 'a ref) = jsobject
+val enumerable = Js._true (* Show getter/setter in object *)
 method get = (to_js !r : 'b)
 method set (v : 'b) =
   try r := from_js v; Js.undefined
@@ -127,35 +128,81 @@ let mk_network_option r =
       | LiquidOptions.Dune_network -> Js.string "dune"
       | LiquidOptions.Tezos_network -> Js.string "tezos") r
 
+let public_key_option =
+  let open Dune_Network_Lib in
+  mk_opt_option
+    (fun j ->
+       let s = Js.to_string j in
+       match Ed25519.Public_key.of_b58check_opt s with
+       | None -> js_failwith "Bad public key (must be edpk)."
+       | Some k ->
+           let pkh = match !LiquidOptions.network with
+             | Dune_network ->
+               Ed25519.Public_key_hash_dune.of_public_key k
+               |> Ed25519.Public_key_hash_dune.to_b58check
+             | Tezos_network ->
+               Ed25519.Public_key_hash_tezos.of_public_key k
+               |> Ed25519.Public_key_hash_tezos.to_b58check in
+           LiquidOptions.source := Some pkh;
+           s
+    )
+    Js.string
+    LiquidOptions.public_key
+
+let private_key_option =
+  let open Dune_Network_Lib in
+  mk_opt_option
+    (fun j ->
+       let s = Js.to_string j in
+       match Dune_Network_Lib.Ed25519.Secret_key.of_b58check_opt s with
+       | None -> js_failwith "Bad private key (must be edsk)."
+       | Some sk ->
+           let k = Sodium.Sign.secret_key_to_public_key sk
+                   |> Ed25519.Public_key.to_b58check in
+           public_key_option##set(Js.Opt.return (Js.string k)) |> ignore;
+           s
+    )
+    Js.string
+    LiquidOptions.private_key
+
+let options_obj = jsobject end
+
+let _Object = Js.Unsafe.global##_Object
 
 let () =
   let open LiquidOptions in
-  Js.export "options" @@ jsobject
-val inline = mk_bool_option inline
-val simplify = mk_bool_option simplify
-val peephole = mk_bool_option peephole
-val typeonly = mk_bool_option typeonly
-val parseonly = mk_bool_option parseonly
-val singleline = mk_bool_option singleline
-val ignore_annots_ = mk_bool_option ignore_annots
-val retry_without_annots_ = mk_bool_option retry_without_annots
-val no_annot_ = mk_bool_option no_annot
-val no_uncurrying_ = mk_bool_option no_uncurrying
-val main = mk_string_opt_option main
-val reason_syntax_ = mk_not_bool_option ocaml_syntax
-val writeinfo = mk_bool_option writeinfo
-val signature = mk_string_opt_option signature
-val node = mk_string_option node
-val source = mk_string_opt_option source
-val private_key_ = mk_string_opt_option private_key
-val public_key_ = mk_string_opt_option public_key
-val amount = mk_tez_option amount
-val fee = mk_tez_opt_option fee
-val gas_limit_ = mk_int_opt_option gas_limit
-val storage_limit_ = mk_int_opt_option storage_limit
-val counter = mk_int_opt_option counter
-val network = mk_network_option network
-end
+  let add_option prop_name property =
+    _Object##defineProperty(options_obj, Js.string prop_name, property)
+    |> ignore
+  in
+  add_option "inline" (mk_bool_option inline);
+  add_option "simplify" (mk_bool_option simplify);
+  add_option "peephole" (mk_bool_option peephole);
+  add_option "typeonly" (mk_bool_option typeonly);
+  add_option "parseonly" (mk_bool_option parseonly);
+  add_option "singleline" (mk_bool_option singleline);
+  add_option "ignore_annots" (mk_bool_option ignore_annots);
+  add_option "retry_without_annots" (mk_bool_option retry_without_annots);
+  add_option "no_annot" (mk_bool_option no_annot);
+  add_option "no_uncurrying" (mk_bool_option no_uncurrying);
+  add_option "main" (mk_string_opt_option main);
+  add_option "reason_syntax" (mk_not_bool_option ocaml_syntax);
+  add_option "writeinfo" (mk_bool_option writeinfo);
+  add_option "signature" (mk_string_opt_option signature);
+  add_option "node" (mk_string_option node);
+  add_option "source" (mk_string_opt_option source);
+  add_option "private_key" (private_key_option);
+  add_option "public_key" (public_key_option);
+  add_option "amount" (mk_tez_option amount);
+  add_option "fee" (mk_tez_opt_option fee);
+  add_option "gas_limit" (mk_int_opt_option gas_limit);
+  add_option "storage_limit" (mk_int_opt_option storage_limit);
+  add_option "counter" (mk_int_opt_option counter);
+  add_option "network" (mk_network_option network);
+  ()
+
+let () =
+  Js.export "options" options_obj
 
 let () =
   Js.export "compiler" @@ jsobject
