@@ -31,7 +31,6 @@ Alternatively, the minified JavaScript files are also available in the
 ```javascript
 const liquidity = require("liquidity-js");
 (async () => {
-
     await liquidity.ready;
 
     // Setting options
@@ -40,15 +39,23 @@ const liquidity = require("liquidity-js");
     
     // Compile
     var my_contract = 
-        `type storage = int
-         let%init storage x = 2 * (x:int) + 1
-         let%entry default () x = [], x + 1`;
+        `type storage = (key_hash, tez) big_map
+         let%init storage = BigMap []
+         let%entry default (addr, a) s =
+           [Account.transfer addr a], Map.add addr a s`;
     console.log(liquidity.compiler.compile(my_contract));
+
+    // Simulate contract
+    console.dir(await liquidity.client.run({
+        code: my_contract,
+        entrypoint: "default",
+        parameter: "(dn1HieGdCFcT8Lg9jDANfEGbJyt6arqEuSJb, 100DUN)",
+        storage: "BigMap []"
+    }), {depth: null});
 
     // Deploy contract
     var op = await liquidity.client.deploy({
-        code: my_contract,
-        arguments: ["1"]
+        code: my_contract
     });
     console.log("Operation hash:", op.operation_hash);
     console.log("Originated contract:", op.contract);

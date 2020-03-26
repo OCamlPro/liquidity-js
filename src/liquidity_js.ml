@@ -326,6 +326,57 @@ let field ?default name translate j =
   | Some default, "undefined" -> default
   | _ -> translate j
 
+(* Datastructures conversion to JS *)
+open LiquidityToMichelsonClient.String.T
+
+let internal_operation_to_js op =
+  Json_encoding.construct SourceOperation.internal_encoding op
+  |> Ezjsonm.value_to_js
+
+let big_map_diff_to_js bmdiff =
+  let open Json_encoding in
+  construct
+    (Big_map_diff.encoding
+       (union [
+           case (obj1 (req "id" int))
+             (function
+               | LiquidClientSigs.Bm_id i -> Some i
+               | _ -> None)
+             (fun i -> LiquidClientSigs.Bm_id i);
+           case (obj2
+                   (req "id" int)
+                   (req "name" string))
+             (function
+               | LiquidClientSigs.Bm_name (i, n) -> Some (i, n)
+               | _ -> None)
+             (fun (i, n) -> LiquidClientSigs.Bm_name (i, n));
+
+         ])
+       string)
+    bmdiff
+  |> Ezjsonm.value_to_js
+
+let trace_to_js tr =
+  let open Json_encoding in
+  let open LiquidTypes in
+  construct
+    (Trace.encoding
+       (conv
+          (function
+            | { loc_file = "<unspecified>"; loc_pos  = None } -> None
+            | { loc_file ; loc_pos } -> Some (loc_file, loc_pos))
+         (function
+           | None -> { loc_file = "<unspecified>"; loc_pos  = None }
+           | Some (loc_file, loc_pos) -> { loc_file; loc_pos })
+         (option
+            (obj2
+               (req "file" string)
+               (opt "loc" (tup2 (tup2 int int) (tup2 int int))))))
+       string)
+    tr
+  |> Ezjsonm.value_to_js
+
+
 (* Client export *)
 
 let () =
@@ -355,8 +406,13 @@ method run o =
     (field "parameter" Js.to_string o##parameter)
     (field "storage" Js.to_string o##storage)
   >|= fun (ops, storage, bm_diff) ->
-  (* TODO: ops, bm *)
-  Js.string storage
+  jsobject
+    val storage = Js.string storage
+    val operations =
+      Js.Optdef.return @@ Js.array @@ Array.of_list @@
+      List.map internal_operation_to_js ops
+    val big_map_diff_ = big_map_diff_to_js bm_diff
+  end
 
 
 method trace o =
@@ -367,8 +423,14 @@ method trace o =
     (field "parameter" Js.to_string o##parameter)
     (field "storage" Js.to_string o##storage)
   >|= fun (ops, storage, bm_diff, trace) ->
-  (* TODO: ops, bm, trace *)
-  Js.string storage
+  jsobject
+    val storage = Js.string storage
+    val operations =
+      Js.Optdef.return @@ Js.array @@ Array.of_list @@
+      List.map internal_operation_to_js ops
+    val big_map_diff_ = big_map_diff_to_js bm_diff
+    val trace = trace_to_js trace
+  end
 
 method deploy o =
   lwt_to_promise @@ fun () ->
