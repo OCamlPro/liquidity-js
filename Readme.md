@@ -48,6 +48,7 @@ const liquidity = require("liquidity-js");
     // Simulate contract
     console.dir(await liquidity.client.run({
         code: my_contract,
+        amount: 9.008,
         entrypoint: "default",
         parameter: "(dn1HieGdCFcT8Lg9jDANfEGbJyt6arqEuSJb, 100DUN)",
         storage: "BigMap []"
@@ -55,7 +56,8 @@ const liquidity = require("liquidity-js");
 
     // Deploy contract
     var op = await liquidity.client.deploy({
-        code: my_contract
+        code: my_contract,
+        balance: 0
     });
     console.log("Operation hash:", op.operation_hash);
     console.log("Originated contract:", op.contract);
@@ -85,7 +87,8 @@ const liquidity = require("liquidity-js");
     // Deploy contract
     liquidity.client.deploy({
       code: my_contract,
-      arguments: ["1"]
+      arguments: ["1"],
+      balance: 0
     }).then(console.log).catch(console.error);
 
   }

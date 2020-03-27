@@ -193,10 +193,6 @@ let () =
   add_option "source" (mk_string_opt_option source);
   add_option "private_key" (private_key_option);
   add_option "public_key" (public_key_option);
-  add_option "fee" (mk_tez_opt_option fee);
-  add_option "gas_limit" (mk_int_opt_option gas_limit);
-  add_option "storage_limit" (mk_int_opt_option storage_limit);
-  add_option "counter" (mk_int_opt_option counter);
   add_option "network" (mk_network_option network);
   ()
 
@@ -339,8 +335,19 @@ let field ?default name translate j =
 open LiquidityToMichelsonClient.String.T
 
 let internal_operation_to_js op =
-  Json_encoding.construct SourceOperation.internal_encoding op
-  |> Ezjsonm.value_to_js
+  let js_op =
+    Json_encoding.construct SourceOperation.internal_encoding op
+    |> Ezjsonm.value_to_js
+    |> Js.Unsafe.coerce in
+  js_op##amount <-
+    js_op##amount
+    |> Js.to_string
+    |> Z.of_string
+    |> LiquidNumber.tez_of_mic_mutez
+    |> LiquidNumber.liq_of_tez
+    |> (fun s -> s ^ LiquidOptions.curreny ())
+    |> Js.string;
+  js_op
 
 let big_map_diff_to_js bmdiff =
   let open Json_encoding in
@@ -386,6 +393,29 @@ let trace_to_js tr =
   |> Ezjsonm.value_to_js
 
 
+let set_op_options o =
+  let fee =
+    field "fee" ~default:None (fun x -> Some (js_to_tez x)) o##fee in
+  let gas_limit =
+    field "gas_limit" ~default:None (fun x -> Some (to_int x)) o##gas_limit_ in
+  let storage_limit =
+    field "storage_limit" ~default:None (fun x -> Some (to_int x)) o##storage_limit_ in
+  let counter =
+    field "counter" ~default:None (fun x -> Some (to_int x)) o##counter in
+  LiquidOptions.fee := fee;
+  LiquidOptions.gas_limit := gas_limit;
+  LiquidOptions.storage_limit := storage_limit;
+  LiquidOptions.counter := counter;
+  ()
+
+let allowed_fields o l =
+  Array.iter (fun prop ->
+      let prop = Js.to_string prop in
+      if not @@ List.mem prop l then
+        failwith "Unsupported object field %s (allowed fields: %s)"
+          prop (String.concat ", " (List.sort Pervasives.compare l))
+    ) (Js.to_array _Object##keys(o))
+
 (* Client export *)
 
 let () =
@@ -393,6 +423,7 @@ let () =
 
 method init_storage_ o =
   lwt_to_promise @@ fun () ->
+  allowed_fields o ["code"; "arguments"];
   Client.init_storage
     (field "code" js_to_contract o##code)
     (field "arguments" ~default:[] to_string_list o##arguments)
@@ -401,6 +432,7 @@ method init_storage_ o =
 
 method init_storage_obj_ o =
   lwt_to_promise @@ fun () ->
+  allowed_fields o ["code"; "arguments"];
   ClientJson.init_storage
     (field "code" js_to_contract o##code)
     (field "arguments" ~default:[] to_string_list o##arguments)
@@ -409,6 +441,7 @@ method init_storage_obj_ o =
 
 method run o =
   lwt_to_promise @@ fun () ->
+  allowed_fields o ["amount"; "code"; "entrypoint"; "parameter"; "storage"];
   Client.run
     ~amount:(field "amount" js_to_tez o##amount)
     (field "code" js_to_contract o##code)
@@ -427,6 +460,7 @@ method run o =
 
 method trace o =
   lwt_to_promise @@ fun () ->
+  allowed_fields o ["amount"; "code"; "entrypoint"; "parameter"; "storage"];
   Client.run_debug
     ~amount:(field "amount" js_to_tez o##amount)
     (field "code" js_to_contract o##code)
@@ -445,6 +479,9 @@ method trace o =
 
 method deploy o =
   lwt_to_promise @@ fun () ->
+  allowed_fields o ["balance"; "code"; "arguments";
+                    "counter"; "fee"; "gas_limit"; "storage_limit"];
+  set_op_options o;
   Client.deploy
     ~balance:(field "balance" js_to_tez o##balance)
     (field "code" js_to_contract o##code)
@@ -457,6 +494,7 @@ method deploy o =
 
 method get_storage_ o =
   lwt_to_promise @@ fun () ->
+  allowed_fields o ["code"; "address"];
   Client.get_storage
     (field "code" js_to_contract o##code)
     (field "address" Js.to_string o##address)
@@ -464,6 +502,7 @@ method get_storage_ o =
 
 method get_big_map_value_ o =
   lwt_to_promise @@ fun () ->
+  allowed_fields o ["big_map_id"; "key_type"; "value_type"; "key"];
   Client.get_big_map_value
     ((field "big_map_id" (fun x -> LiquidClientSigs.Bm_id (to_int x)) o##big_map_id_),
      (field "key_type" to_datatype o##key_type_),
@@ -475,6 +514,9 @@ method get_big_map_value_ o =
 
 method call o =
   lwt_to_promise @@ fun () ->
+  allowed_fields o ["code"; "amount"; "address"; "entrypoint"; "parameter";
+                    "counter"; "fee"; "gas_limit"; "storage_limit"];
+  set_op_options o;
   Client.call
     ?contract:(field "code" ~default:None
                  (fun c -> Some (js_to_contract c))
@@ -487,6 +529,7 @@ method call o =
 
 method pack o =
   lwt_to_promise @@ fun () ->
+  allowed_fields o ["value"; "type"];
   Client.pack
     ~const:(field "value" Js.to_string o##value)
     ~ty:(field "type" Js.to_string o##type_)
@@ -494,6 +537,9 @@ method pack o =
 
 method forge_deploy_ o =
   lwt_to_promise @@ fun () ->
+  allowed_fields o ["balance"; "code"; "arguments";
+                    "counter"; "fee"; "gas_limit"; "storage_limit"];
+  set_op_options o;
   Client.forge_deploy
     ~balance:(field "balance" js_to_tez o##balance)
     (field "code" js_to_contract o##code)
@@ -502,6 +548,9 @@ method forge_deploy_ o =
 
 method forge_call_ o =
   lwt_to_promise @@ fun () ->
+  allowed_fields o ["code"; "amount"; "address"; "entrypoint"; "parameter";
+                    "counter"; "fee"; "gas_limit"; "storage_limit"];
+  set_op_options o;
   Client.forge_call
     ?contract:(field "code" ~default:None
                  (fun c -> Some (js_to_contract c))
