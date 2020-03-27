@@ -193,7 +193,6 @@ let () =
   add_option "source" (mk_string_opt_option source);
   add_option "private_key" (private_key_option);
   add_option "public_key" (public_key_option);
-  add_option "amount" (mk_tez_option amount);
   add_option "fee" (mk_tez_opt_option fee);
   add_option "gas_limit" (mk_int_opt_option gas_limit);
   add_option "storage_limit" (mk_int_opt_option storage_limit);
@@ -310,6 +309,8 @@ let to_string_list j =
 
 let to_int j = Js.parseInt j##toString()
 
+let js_to_tez j = LiquidNumber.tez_of_liq (Js.to_string j##toString())
+
 let to_datatype j =
   Js.to_string j
   |> LiquidityToMichelsonClient.String.C.SourceConv.parse_datatype
@@ -409,6 +410,7 @@ method init_storage_obj_ o =
 method run o =
   lwt_to_promise @@ fun () ->
   Client.run
+    ~amount:(field "amount" js_to_tez o##amount)
     (field "code" js_to_contract o##code)
     (field "entrypoint" ~default:"default" Js.to_string o##entrypoint)
     (field "parameter" Js.to_string o##parameter)
@@ -426,6 +428,7 @@ method run o =
 method trace o =
   lwt_to_promise @@ fun () ->
   Client.run_debug
+    ~amount:(field "amount" js_to_tez o##amount)
     (field "code" js_to_contract o##code)
     (field "entrypoint" ~default:"default" Js.to_string o##entrypoint)
     (field "parameter" Js.to_string o##parameter)
@@ -443,6 +446,7 @@ method trace o =
 method deploy o =
   lwt_to_promise @@ fun () ->
   Client.deploy
+    ~balance:(field "balance" js_to_tez o##balance)
     (field "code" js_to_contract o##code)
     (field "arguments" ~default:[] to_string_list o##arguments)
   >|= fun (oph, c) ->
@@ -475,6 +479,7 @@ method call o =
     ?contract:(field "code" ~default:None
                  (fun c -> Some (js_to_contract c))
                  o##code)
+    ~amount:(field "amount" js_to_tez o##amount)
     ~address:(field "address" Js.to_string o##address)
     ~entry:(field "entrypoint" ~default:"default" Js.to_string o##entry)
     (field "parameter" Js.to_string o##parameter)
@@ -490,6 +495,7 @@ method pack o =
 method forge_deploy_ o =
   lwt_to_promise @@ fun () ->
   Client.forge_deploy
+    ~balance:(field "balance" js_to_tez o##balance)
     (field "code" js_to_contract o##code)
     (field "arguments" ~default:[] to_string_list o##arguments)
   >|= fun b -> Hex.(show @@ of_bytes b) |> Js.string
@@ -500,6 +506,7 @@ method forge_call_ o =
     ?contract:(field "code" ~default:None
                  (fun c -> Some (js_to_contract c))
                  o##code)
+    ~amount:(field "amount" js_to_tez o##amount)
     ~address:(field "address" Js.to_string o##address)
     ~entry:(field "entrypoint" ~default:"default" Js.to_string o##entrypoint)
     (field "parameter" Js.to_string o##parameter)
